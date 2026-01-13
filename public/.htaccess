@@ -1,0 +1,9 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    # Si el archivo solicitado NO es un archivo real (!-f)
+    RewriteCond %{REQUEST_FILENAME} !-f
+    # Y si el directorio solicitado NO es un directorio real (!-d)
+    RewriteCond %{REQUEST_FILENAME} !-d
+    # Entonces, mándalo todo a index.php
+    RewriteRule ^(.*)$ index.php?PATH_INFO=$1 [L,QSA]
+</IfModule>

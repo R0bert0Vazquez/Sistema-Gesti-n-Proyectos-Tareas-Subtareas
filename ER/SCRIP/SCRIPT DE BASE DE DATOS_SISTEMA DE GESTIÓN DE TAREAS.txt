@@ -1,0 +1,94 @@
+-- ==========================================================
+-- SCRIPT DE BASE DE DATOS: SISTEMA DE GESTIÓN DE TAREAS
+-- Autor: Roberto Adrian Dzul Vazquez (Evaluación Técnica)
+-- ==========================================================
+
+-- 1. Limpieza y Creación de la BD
+-- ----------------------------------------------------------
+DROP DATABASE IF EXISTS sistema_gestion_tareas;
+CREATE DATABASE sistema_gestion_tareas CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE sistema_gestion_tareas;
+
+-- 2. Tabla Usuarios
+-- ----------------------------------------------------------
+CREATE TABLE usuarios (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL,
+    email VARCHAR(150) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL, -- Se almacenará el Hash, no texto plano
+    api_token VARCHAR(64) NULL DEFAULT NULL, -- Token para autenticación API
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+-- 3. Tabla Proyectos (Nivel Superior)
+-- ----------------------------------------------------------
+CREATE TABLE proyectos (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(150) NOT NULL,
+    descripcion TEXT NULL,
+    estado VARCHAR(20) DEFAULT 'Pendiente', -- 'Pendiente', 'Completado' (Mayúscula inicial)
+    id_usuario INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    -- Si se borra el usuario, se borran sus proyectos (Integridad de datos)
+    CONSTRAINT fk_proyecto_usuario 
+        FOREIGN KEY (id_usuario) REFERENCES usuarios(id) 
+        ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- 4. Tabla Tareas (Nivel Intermedio)
+-- ----------------------------------------------------------
+CREATE TABLE tareas (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(150) NOT NULL,
+    descripcion TEXT NULL,
+    estado VARCHAR(20) DEFAULT 'Pendiente',
+    fecha_vencimiento DATE NULL,
+    id_proyecto INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    -- Si se borra el proyecto, se borran sus tareas
+    CONSTRAINT fk_tarea_proyecto 
+        FOREIGN KEY (id_proyecto) REFERENCES proyectos(id) 
+        ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- 5. Tabla Subtareas (Nivel Inferior)
+-- ----------------------------------------------------------
+CREATE TABLE subtareas (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(150) NOT NULL,
+    estado VARCHAR(20) DEFAULT 'Pendiente',
+    id_tarea INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    -- Si se borra la tarea, se borran sus subtareas
+    CONSTRAINT fk_subtarea_tarea 
+        FOREIGN KEY (id_tarea) REFERENCES tareas(id) 
+        ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- 6. Tabla Comentarios (Polimórfica)
+-- ----------------------------------------------------------
+CREATE TABLE comentarios (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    contenido TEXT NOT NULL,
+    id_usuario INT NOT NULL,
+    
+    -- Campos para la relación polimórfica
+    elemento_id INT NOT NULL, -- ID del Proyecto, Tarea o Subtarea
+    elemento_tipo VARCHAR(20) NOT NULL, -- 'proyecto', 'tarea', 'subtarea'
+    
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    CONSTRAINT fk_comentario_usuario 
+        FOREIGN KEY (id_usuario) REFERENCES usuarios(id) 
+        ON DELETE CASCADE,
+        
+    -- Índice para búsquedas rápidas (Ej: Dame comentarios de la Tarea 5)
+    INDEX idx_elemento (elemento_id, elemento_tipo)
+) ENGINE=InnoDB;
+
+-- ==========================================================
+-- FIN DEL SCRIPT
+-- ==========================================================
